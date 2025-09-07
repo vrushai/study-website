@@ -1,205 +1,307 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8">
-  <title>Study Dashboard</title>
-  <style>
-    body {
-      font-family: Arial, sans-serif;
-      margin: 0;
-      padding: 0;
-      background: #f4f4f4;
-      text-align: center;
-    }
-    nav {
-      display: flex;
-      justify-content: center;
-      background: #333;
-      padding: 10px;
-      gap: 15px;
-    }
-    nav button {
-      background: #444;
-      color: white;
-      border: none;
-      padding: 12px 18px;
-      border-radius: 8px;
-      cursor: pointer;
-      font-size: 16px;
-    }
-    nav button.active {
-      background: #007bff;
-    }
-    .section {
-      display: none;
-      margin: 30px auto;
-      width: 70%;
-      background: white;
-      padding: 25px;
-      border-radius: 12px;
-      box-shadow: 0 4px 8px rgba(0,0,0,0.2);
-    }
-    .section.active {
-      display: block;
-    }
-    textarea {
-      width: 90%;
-      height: 200px;
-      margin-top: 10px;
-      padding: 10px;
-    }
-  </style>
+<meta charset="UTF-8">
+<title>Study Dashboard</title>
+<style>
+  body {
+    font-family: 'Poppins', sans-serif;
+    margin: 0;
+    background: #e0f7fa;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    min-height: 100vh;
+  }
+
+  /* Top menu buttons */
+  nav {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: center;
+    gap: 10px;
+    margin: 20px 0;
+  }
+  nav button {
+    padding: 8px 16px;       /* small by default */
+    font-size: 14px;
+    border-radius: 12px;
+    border: none;
+    cursor: pointer;
+    color: white;
+    font-weight: bold;
+    background: #00acc1;
+    transition: all 0.3s ease;
+  }
+  nav button:hover { background: #0097a7; }
+  nav button.active {
+    padding: 18px 30px;      /* bigger when active */
+    font-size: 20px;
+    background: #00838f;
+  }
+  nav button.reset-btn { background: #d32f2f; }
+
+  /* Main content */
+  #sections {
+    flex: 1;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    width: 90%;
+    max-width: 900px;
+    margin-bottom: 30px;
+  }
+  .section {
+    width: 100%;
+    padding: 30px;
+    border-radius: 20px;
+    background: #ffffff;
+    box-shadow: 0 6px 20px rgba(0,0,0,0.2);
+    display: none;
+    text-align: center;
+  }
+  h2 { color: #007c91; margin-bottom: 20px; font-size: 28px; }
+
+  input, textarea, button {
+    width: 100%;
+    box-sizing: border-box;
+    font-size: 18px;
+    padding: 16px;
+    margin: 10px 0;
+    border-radius: 12px;
+    border: 1px solid #00acc1;
+  }
+  textarea { resize: none; height: 150px; }
+
+  .pdf-upload-btn, .camera-btn {
+    margin-top: 10px;
+    padding: 16px;
+    font-size: 18px;
+    border-radius: 12px;
+    cursor: pointer;
+    background: #ff7043;
+    color: white;
+    border: none;
+    font-weight: bold;
+  }
+  .pdf-upload-btn:hover, .camera-btn:hover { background: #f4511e; }
+
+  .timer-display { font-size: 52px; color: #007c91; font-weight: bold; margin-top: 20px; }
+
+  #flashcardsList div, #quizList div {
+    border: 1px solid #00acc1;
+    border-radius: 15px;
+    padding: 16px;
+    margin: 10px 0;
+    background: #e0f2f1;
+    font-size: 18px;
+  }
+  .quiz-answer { color: #004d40; margin-bottom: 20px; }
+</style>
 </head>
 <body>
 
-  <h1>📚 Study Dashboard</h1>
-  <nav>
-    <button onclick="showSection('notes', event)" class="active">Notes</button>
-    <button onclick="showSection('flashcards', event)">Flashcards</button>
-    <button onclick="showSection('quiz', event)">Quiz</button>
-    <button onclick="showSection('timer', event)">Timer</button>
-    <button onclick="showSection('streak', event)">Daily Streak</button>
-    <button onclick="showSection('upload', event)">Upload PDF</button>
-    <button onclick="openCamera()">📷 Camera Input</button>
-  </nav>
+<nav>
+  <button onclick="showSection('notes', event)" class="active">Notes</button>
+  <button onclick="showSection('flashcards', event)">Flashcards</button>
+  <button onclick="showSection('quiz', event)">Quiz</button>
+  <button onclick="showSection('timer', event)">Timer</button>
+  <button onclick="showSection('streak', event)">Daily Streak</button>
+  <button class="reset-btn" onclick="resetAll()">Reset All</button>
+</nav>
 
-  <div id="notes" class="section active">
+<div id="sections">
+  <div class="section" id="notesSection">
     <h2>Notes</h2>
-    <textarea placeholder="Write your notes here..."></textarea>
+    <textarea id="notesArea" placeholder="Write your notes here..."></textarea>
   </div>
 
-  <div id="flashcards" class="section">
+  <div class="section" id="flashcardsSection">
     <h2>Flashcards</h2>
-    <p>No flashcards yet.</p>
+    <textarea id="flashcardQuestion" placeholder="Enter question here..."></textarea>
+    <textarea id="flashcardAnswer" placeholder="Enter answer here..."></textarea>
+    <button onclick="addFlashcard()">Add Flashcard</button>
+    <div id="flashcardsList"></div>
+
+    <button class="pdf-upload-btn" onclick="document.getElementById('pdfUpload').click()">Upload PDF Textbook</button>
+    <input type="file" id="pdfUpload" accept="application/pdf" style="display:none;" onchange="generateFlashcardsFromPDF()">
+
+    <button class="camera-btn" onclick="startCamera()">Use Camera</button>
+    <video id="camera" width="100%" height="250" autoplay style="display:none;"></video>
+    <canvas id="canvas" style="display:none;"></canvas>
   </div>
 
-  <div id="quiz" class="section">
+  <div class="section" id="quizSection">
     <h2>Quiz</h2>
-    <p>No quiz yet.</p>
+    <textarea id="quizInput" placeholder="Enter question here for manual quiz..."></textarea>
+    <button onclick="addQuiz()">Add Quiz Question</button>
+    <button onclick="startAutomatedQuiz()">Start Automated Quiz</button>
+    <div id="quizList"></div>
   </div>
 
-  <div id="timer" class="section">
-    <h2>Focus Timer</h2>
-    <input type="number" id="minutes" placeholder="Minutes">
-    <button onclick="startTimer()">Start</button>
-    <p id="timeDisplay"></p>
+  <div class="section" id="timerSection">
+    <h2>Timer</h2>
+    <input type="number" id="minutes" placeholder="Enter minutes">
+    <div class="timer-display" id="timerDisplay">00:00</div>
+    <button id="startBtn">Start Timer</button>
+    <button id="resetBtn">Reset Timer</button>
   </div>
 
-  <div id="streak" class="section">
+  <div class="section" id="streakSection">
     <h2>Daily Streak</h2>
-    <p id="streakCount">🔥 0 days</p>
+    <p>Days Studied Consecutively: <span id="streakCount">0</span></p>
   </div>
+</div>
 
-  <div id="upload" class="section">
-    <h2>Upload PDF Textbook</h2>
-    <input type="file" id="pdfUpload" accept="application/pdf">
-    <p>Flashcards + Quiz will be generated automatically from the uploaded PDF.</p>
-  </div>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.9.179/pdf.min.js"></script>
+<script>
+  // ------------------ Section Switching ------------------
+  function showSection(section,event){
+    const sections=['notesSection','flashcardsSection','quizSection','timerSection','streakSection'];
+    sections.forEach(s=>document.getElementById(s).style.display='none');
+    document.getElementById(section+'Section').style.display='block';
+    document.querySelectorAll('nav button').forEach(btn=>btn.classList.remove('active'));
+    if(event) event.target.classList.add('active');
+  }
+  showSection('notes');
 
-  <div id="camera" class="section">
-    <h2>Capture Textbook Page</h2>
-    <video id="video" width="400" autoplay></video>
-    <br>
-    <button onclick="captureImage()">Capture</button>
-    <canvas id="canvas" width="400" height="300" style="display:none;"></canvas>
-    <p id="cameraStatus"></p>
-  </div>
+  // ------------------ Notes ------------------
+  const notesArea=document.getElementById('notesArea');
+  notesArea.value=localStorage.getItem('notes')||'';
+  notesArea.addEventListener('input',()=>localStorage.setItem('notes',notesArea.value));
 
-  <script>
-    function showSection(id, event) {
-      document.querySelectorAll('.section').forEach(sec => sec.classList.remove('active'));
-      document.getElementById(id).classList.add('active');
-      document.querySelectorAll('nav button').forEach(btn => btn.classList.remove('active'));
-      event.target.classList.add('active');
+  // ------------------ Flashcards ------------------
+  let flashcards=JSON.parse(localStorage.getItem('flashcards')||'[]');
+  function addFlashcard(){
+    const q=document.getElementById('flashcardQuestion').value;
+    const a=document.getElementById('flashcardAnswer').value;
+    if(q&&a){ flashcards.push({question:q,answer:a}); renderFlashcards(); 
+      document.getElementById('flashcardQuestion').value=''; 
+      document.getElementById('flashcardAnswer').value=''; 
+      localStorage.setItem('flashcards',JSON.stringify(flashcards));
     }
+  }
+  function renderFlashcards(){
+    const list=document.getElementById('flashcardsList'); list.innerHTML='';
+    flashcards.forEach(f=>{
+      const card=document.createElement('div');
+      card.innerHTML=`<strong>Q:</strong> ${f.question} <br><strong>A:</strong> ${f.answer}`;
+      list.appendChild(card);
+    });
+  }
+  renderFlashcards();
 
-    // Timer
-    let timer;
-    function startTimer() {
-      let minutes = document.getElementById('minutes').value;
-      let time = minutes * 60;
-      clearInterval(timer);
-      timer = setInterval(() => {
-        let m = Math.floor(time / 60);
-        let s = time % 60;
-        document.getElementById('timeDisplay').innerText = `${m}:${s < 10 ? '0' : ''}${s}`;
-        if (time <= 0) {
-          clearInterval(timer);
-          alert("Time's up!");
+  // ------------------ PDF Upload ------------------
+  function generateFlashcardsFromPDF(){
+    const file=document.getElementById('pdfUpload').files[0];
+    if(!file) return alert('Please select a PDF!');
+    const reader=new FileReader();
+    reader.onload=function(){
+      const typedarray=new Uint8Array(this.result);
+      pdfjsLib.getDocument(typedarray).promise.then(pdf=>{
+        let allText=''; let pagePromises=[];
+        for(let i=1;i<=pdf.numPages;i++){
+          pagePromises.push(
+            pdf.getPage(i).then(page=>page.getTextContent())
+            .then(content=>{
+              const text=content.items.map(item=>item.str).join(' ');
+              allText+=text+' ';
+            })
+          );
         }
-        time--;
-      }, 1000);
-    }
-
-    // Daily Streak (simple auto increment per day)
-    let streak = localStorage.getItem("streak") || 0;
-    document.getElementById('streakCount').innerText = "🔥 " + streak + " days";
-    let today = new Date().toDateString();
-    if (localStorage.getItem("lastDay") !== today) {
-      streak++;
-      localStorage.setItem("streak", streak);
-      localStorage.setItem("lastDay", today);
-      document.getElementById('streakCount').innerText = "🔥 " + streak + " days";
-    }
-
-    // Camera setup
-    let video = document.getElementById('video');
-    let canvas = document.getElementById('canvas');
-    let context = canvas.getContext('2d');
-
-    function openCamera() {
-      showSection('camera', event);
-      navigator.mediaDevices.getUserMedia({ video: true })
-        .then(stream => {
-          video.srcObject = stream;
-        })
-        .catch(err => {
-          document.getElementById('cameraStatus').innerText = "Camera access denied.";
+        Promise.all(pagePromises).then(()=>{
+          const lines=allText.split('. ');
+          flashcards.push({question:lines[0]||'Q1',answer:lines[1]||'A1'});
+          renderFlashcards();
+          localStorage.setItem('flashcards',JSON.stringify(flashcards));
+          alert('PDF loaded and flashcards generated!');
         });
+      });
+    };
+    reader.readAsArrayBuffer(file);
+  }
+
+  // ------------------ Camera ------------------
+  let stream;
+  function startCamera(){
+    const video=document.getElementById('camera'); video.style.display='block';
+    navigator.mediaDevices.getUserMedia({video:true})
+      .then(s=>{stream=s; video.srcObject=stream;})
+      .catch(()=>alert('Camera not supported or denied.'));
+  }
+
+  // ------------------ Quiz ------------------
+  let quizQuestions=JSON.parse(localStorage.getItem('quiz')||'[]');
+  function addQuiz(){ 
+    const q=document.getElementById('quizInput').value;
+    if(q){ quizQuestions.push(q); renderQuiz(); 
+      document.getElementById('quizInput').value=''; 
+      localStorage.setItem('quiz',JSON.stringify(quizQuestions));
     }
+  }
+  function renderQuiz(){
+    const list=document.getElementById('quizList'); list.innerHTML='';
+    quizQuestions.forEach((q,i)=>{
+      const qDiv=document.createElement('div'); qDiv.textContent=`Q${i+1}: ${q}`;
+      list.appendChild(qDiv);
+    });
+  }
+  renderQuiz();
+  function startAutomatedQuiz(){
+    const list=document.getElementById('quizList'); list.innerHTML='';
+    if(quizQuestions.length===0 && flashcards.length>0){
+      flashcards.forEach(f=>{
+        const qDiv=document.createElement('div'); qDiv.textContent=f.question;
+        const aDiv=document.createElement('div'); aDiv.textContent=f.answer; aDiv.classList.add('quiz-answer');
+        list.appendChild(qDiv); list.appendChild(aDiv);
+      });
+    } else if(quizQuestions.length>0) renderQuiz();
+    else list.textContent='No questions available.';
+  }
 
-    function captureImage() {
-      context.drawImage(video, 0, 0, canvas.width, canvas.height);
-      let imageData = canvas.toDataURL("image/png");
-      document.getElementById('cameraStatus').innerText = "Processing image...";
+  // ------------------ Timer ------------------
+  let timerInterval, timeLeft;
+  document.getElementById('startBtn').onclick=function(){
+    const m=parseInt(document.getElementById('minutes').value);
+    if(isNaN(m)||m<=0) return;
+    timeLeft=m*60;
+    updateDisplay();
+    clearInterval(timerInterval);
+    timerInterval=setInterval(()=>{timeLeft--; updateDisplay(); if(timeLeft<=0) clearInterval(timerInterval);},1000);
+  };
+  document.getElementById('resetBtn').onclick=function(){ clearInterval(timerInterval); document.getElementById('timerDisplay').textContent='00:00'; };
+  function updateDisplay(){ const min=Math.floor(timeLeft/60); const sec=timeLeft%60; document.getElementById('timerDisplay').textContent=min.toString().padStart(2,'0')+':'+sec.toString().padStart(2,'0'); }
 
-      // Call GPT API for flashcards
-      generateFlashcardsFromImage(imageData);
+  // ------------------ Daily Streak ------------------
+  let streak=0;
+  function loadStreak(){
+    const lastDate=localStorage.getItem('lastStreakDate');
+    const today=new Date().toDateString();
+    streak=parseInt(localStorage.getItem('streak')||'0');
+    if(lastDate===today){}
+    else if(lastDate===new Date(new Date().setDate(new Date().getDate()-1)).toDateString()){streak++;}
+    else streak=1;
+    localStorage.setItem('streak',streak);
+    localStorage.setItem('lastStreakDate', today);
+    document.getElementById('streakCount').textContent=streak;
+  }
+  loadStreak();
+
+  // ------------------ Reset ------------------
+  function resetAll(){
+    if(confirm('This will clear everything. Proceed?')){
+      localStorage.clear();
+      notesArea.value='';
+      flashcards=[]; renderFlashcards();
+      quizQuestions=[]; renderQuiz();
+      streak=0; document.getElementById('streakCount').textContent='0';
+      document.getElementById('timerDisplay').textContent='00:00';
+      const video=document.getElementById('camera'); video.style.display='none';
+      if(stream) { stream.getTracks().forEach(track=>track.stop()); stream=null; }
     }
-
-    async function generateFlashcardsFromImage(imageData) {
-      try {
-        let response = await fetch("https://api.openai.com/v1/chat/completions", {
-          method: "POST",
-          headers: {
-            "Authorization": "Bearer YOUR_API_KEY_HERE",
-            "Content-Type": "application/json"
-          },
-          body: JSON.stringify({
-            model: "gpt-4o-mini",
-            messages: [
-              { role: "system", content: "You are a teacher that creates flashcards and quizzes." },
-              { role: "user", content: [
-                { type: "text", text: "Extract questions and answers from this textbook page and make flashcards + quiz." },
-                { type: "image_url", image_url: { url: imageData } }
-              ]}
-            ]
-          })
-        });
-
-        let data = await response.json();
-        let output = data.choices[0].message.content;
-
-        document.getElementById('flashcards').innerHTML = "<h2>Generated Flashcards</h2><p>" + output + "</p>";
-        document.getElementById('quiz').innerHTML = "<h2>Generated Quiz</h2><p>" + output + "</p>";
-
-        document.getElementById('cameraStatus').innerText = "Flashcards + Quiz Generated ✅";
-      } catch (error) {
-        console.error(error);
-        document.getElementById('cameraStatus').innerText = "Error generating flashcards.";
-      }
-    }
-  </script>
-
+  }
+</script>
 </body>
 </html>
+
+
