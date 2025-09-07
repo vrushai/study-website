@@ -1,0 +1,205 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Study Dashboard</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      margin: 0;
+      padding: 0;
+      background: #f4f4f4;
+      text-align: center;
+    }
+    nav {
+      display: flex;
+      justify-content: center;
+      background: #333;
+      padding: 10px;
+      gap: 15px;
+    }
+    nav button {
+      background: #444;
+      color: white;
+      border: none;
+      padding: 12px 18px;
+      border-radius: 8px;
+      cursor: pointer;
+      font-size: 16px;
+    }
+    nav button.active {
+      background: #007bff;
+    }
+    .section {
+      display: none;
+      margin: 30px auto;
+      width: 70%;
+      background: white;
+      padding: 25px;
+      border-radius: 12px;
+      box-shadow: 0 4px 8px rgba(0,0,0,0.2);
+    }
+    .section.active {
+      display: block;
+    }
+    textarea {
+      width: 90%;
+      height: 200px;
+      margin-top: 10px;
+      padding: 10px;
+    }
+  </style>
+</head>
+<body>
+
+  <h1>📚 Study Dashboard</h1>
+  <nav>
+    <button onclick="showSection('notes', event)" class="active">Notes</button>
+    <button onclick="showSection('flashcards', event)">Flashcards</button>
+    <button onclick="showSection('quiz', event)">Quiz</button>
+    <button onclick="showSection('timer', event)">Timer</button>
+    <button onclick="showSection('streak', event)">Daily Streak</button>
+    <button onclick="showSection('upload', event)">Upload PDF</button>
+    <button onclick="openCamera()">📷 Camera Input</button>
+  </nav>
+
+  <div id="notes" class="section active">
+    <h2>Notes</h2>
+    <textarea placeholder="Write your notes here..."></textarea>
+  </div>
+
+  <div id="flashcards" class="section">
+    <h2>Flashcards</h2>
+    <p>No flashcards yet.</p>
+  </div>
+
+  <div id="quiz" class="section">
+    <h2>Quiz</h2>
+    <p>No quiz yet.</p>
+  </div>
+
+  <div id="timer" class="section">
+    <h2>Focus Timer</h2>
+    <input type="number" id="minutes" placeholder="Minutes">
+    <button onclick="startTimer()">Start</button>
+    <p id="timeDisplay"></p>
+  </div>
+
+  <div id="streak" class="section">
+    <h2>Daily Streak</h2>
+    <p id="streakCount">🔥 0 days</p>
+  </div>
+
+  <div id="upload" class="section">
+    <h2>Upload PDF Textbook</h2>
+    <input type="file" id="pdfUpload" accept="application/pdf">
+    <p>Flashcards + Quiz will be generated automatically from the uploaded PDF.</p>
+  </div>
+
+  <div id="camera" class="section">
+    <h2>Capture Textbook Page</h2>
+    <video id="video" width="400" autoplay></video>
+    <br>
+    <button onclick="captureImage()">Capture</button>
+    <canvas id="canvas" width="400" height="300" style="display:none;"></canvas>
+    <p id="cameraStatus"></p>
+  </div>
+
+  <script>
+    function showSection(id, event) {
+      document.querySelectorAll('.section').forEach(sec => sec.classList.remove('active'));
+      document.getElementById(id).classList.add('active');
+      document.querySelectorAll('nav button').forEach(btn => btn.classList.remove('active'));
+      event.target.classList.add('active');
+    }
+
+    // Timer
+    let timer;
+    function startTimer() {
+      let minutes = document.getElementById('minutes').value;
+      let time = minutes * 60;
+      clearInterval(timer);
+      timer = setInterval(() => {
+        let m = Math.floor(time / 60);
+        let s = time % 60;
+        document.getElementById('timeDisplay').innerText = `${m}:${s < 10 ? '0' : ''}${s}`;
+        if (time <= 0) {
+          clearInterval(timer);
+          alert("Time's up!");
+        }
+        time--;
+      }, 1000);
+    }
+
+    // Daily Streak (simple auto increment per day)
+    let streak = localStorage.getItem("streak") || 0;
+    document.getElementById('streakCount').innerText = "🔥 " + streak + " days";
+    let today = new Date().toDateString();
+    if (localStorage.getItem("lastDay") !== today) {
+      streak++;
+      localStorage.setItem("streak", streak);
+      localStorage.setItem("lastDay", today);
+      document.getElementById('streakCount').innerText = "🔥 " + streak + " days";
+    }
+
+    // Camera setup
+    let video = document.getElementById('video');
+    let canvas = document.getElementById('canvas');
+    let context = canvas.getContext('2d');
+
+    function openCamera() {
+      showSection('camera', event);
+      navigator.mediaDevices.getUserMedia({ video: true })
+        .then(stream => {
+          video.srcObject = stream;
+        })
+        .catch(err => {
+          document.getElementById('cameraStatus').innerText = "Camera access denied.";
+        });
+    }
+
+    function captureImage() {
+      context.drawImage(video, 0, 0, canvas.width, canvas.height);
+      let imageData = canvas.toDataURL("image/png");
+      document.getElementById('cameraStatus').innerText = "Processing image...";
+
+      // Call GPT API for flashcards
+      generateFlashcardsFromImage(imageData);
+    }
+
+    async function generateFlashcardsFromImage(imageData) {
+      try {
+        let response = await fetch("https://api.openai.com/v1/chat/completions", {
+          method: "POST",
+          headers: {
+            "Authorization": "Bearer YOUR_API_KEY_HERE",
+            "Content-Type": "application/json"
+          },
+          body: JSON.stringify({
+            model: "gpt-4o-mini",
+            messages: [
+              { role: "system", content: "You are a teacher that creates flashcards and quizzes." },
+              { role: "user", content: [
+                { type: "text", text: "Extract questions and answers from this textbook page and make flashcards + quiz." },
+                { type: "image_url", image_url: { url: imageData } }
+              ]}
+            ]
+          })
+        });
+
+        let data = await response.json();
+        let output = data.choices[0].message.content;
+
+        document.getElementById('flashcards').innerHTML = "<h2>Generated Flashcards</h2><p>" + output + "</p>";
+        document.getElementById('quiz').innerHTML = "<h2>Generated Quiz</h2><p>" + output + "</p>";
+
+        document.getElementById('cameraStatus').innerText = "Flashcards + Quiz Generated ✅";
+      } catch (error) {
+        console.error(error);
+        document.getElementById('cameraStatus').innerText = "Error generating flashcards.";
+      }
+    }
+  </script>
+
+</body>
+</html>
